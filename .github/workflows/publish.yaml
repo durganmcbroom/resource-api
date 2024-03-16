@@ -1,11 +1,15 @@
-name: publish-snapshot
+name: publish
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows:
+      - "check"
+    branches: [dev, main]
+    types:
+      - completed
 jobs:
-  publish-to-maven:
+  publish:
     runs-on: ubuntu-latest
+    environment: publish
     steps:
       - name: Cloning Repo
         uses: actions/checkout@v3
@@ -14,7 +18,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: 'gradle'
       - name: Grant permissions to Gradle
         run: chmod +x gradlew
       - name: Publish with Gradle
-        run: ./gradlew clean :publish -Pmaven-user=${{ secrets.MAVEN_REPO_USER }} -Pmaven-pass=${{ secrets.MAVEN_REPO_PASS }} -PisSnapshot=true -Dorg.gradle.jvmargs=-Xmx512m
+        run: ./gradlew publish -Pmaven.user=${{ secrets.USER }} -Pmaven.key=${{ secrets.USER_KEY }} --no-daemon
