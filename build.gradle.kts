@@ -67,8 +67,15 @@ allprojects {
                 isAllowInsecureProtocol = true
 
                 credentials {
-                    username = project.findProperty("maven.user") as String?
-                    password = project.findProperty("maven.key") as String?
+                    username = project.findProperty("maven.user") as String? ?: run {
+                        System.err.println("No maven user found")
+
+                        null
+                    }
+                    password = project.findProperty("maven.key") as String? ?: run {
+                        System.err.println("No maven key found")
+                        null
+                    }
                 }
                 authentication {
                     create<BasicAuthentication>("basic")
