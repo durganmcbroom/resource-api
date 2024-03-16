@@ -74,7 +74,7 @@ allprojects {
 
                     val userKey = project.findProperty("maven.key") as String?
                     if (user == null) System.err.println("Couldnt find maven key")
-                    else println("Found maven key'")
+                    else println("Found maven key")
                     password = userKey
                 }
                 authentication {
