@@ -19,19 +19,20 @@ public class RemoteResource internal constructor(
         )
 
         return try {
-            val conn = stack.last().openConnection() as HttpURLConnection
-            when (conn.responseCode) {
-                HttpURLConnection.HTTP_OK -> conn.inputStream
-                HttpURLConnection.HTTP_MOVED_TEMP,
-                HttpURLConnection.HTTP_MOVED_PERM,
-                HttpURLConnection.HTTP_SEE_OTHER -> openResource(
-                    stack + URL(conn.getHeaderField("Location"))
-                )
+            stack.last().useConnection { conn ->
+                when (conn.responseCode) {
+                    HttpURLConnection.HTTP_OK -> conn.inputStream
+                    HttpURLConnection.HTTP_MOVED_TEMP,
+                    HttpURLConnection.HTTP_MOVED_PERM,
+                    HttpURLConnection.HTTP_SEE_OTHER -> openResource(
+                        stack + URL(conn.getHeaderField("Location"))
+                    )
 
-                else -> throw ResourceNotFoundException(
-                    stack.last().toString(),
-                    IOException("Received response code '${conn.responseCode}' from the server.")
-                )
+                    else -> throw ResourceNotFoundException(
+                        stack.last().toString(),
+                        IOException("Received response code '${conn.responseCode}' from the server.")
+                    )
+                }
             }
         } catch (t: Throwable) {
             throw ResourceOpenException(stack.first().toString(), t)
@@ -54,22 +55,25 @@ public fun URL.toResource(
         )
 
         return try {
-            val conn = url.openConnection() as HttpURLConnection
-            when (conn.responseCode) {
-                HttpURLConnection.HTTP_OK -> return
-                HttpURLConnection.HTTP_MOVED_TEMP,
-                HttpURLConnection.HTTP_MOVED_PERM,
-                HttpURLConnection.HTTP_SEE_OTHER -> {
-                    val headerField = conn.getHeaderField("Location")
-                    testConnection(
-                        stack + URL(headerField)
+            url.useConnection { conn ->
+                when (conn.responseCode) {
+                    HttpURLConnection.HTTP_OK -> { /* Everything is Ok */
+                    }
+
+                    HttpURLConnection.HTTP_MOVED_TEMP,
+                    HttpURLConnection.HTTP_MOVED_PERM,
+                    HttpURLConnection.HTTP_SEE_OTHER -> {
+                        val headerField = conn.getHeaderField("Location")
+                        testConnection(
+                            stack + URL(headerField)
+                        )
+                    }
+
+                    else -> throw ResourceNotFoundException(
+                        url.toString(),
+                        IOException("Received response code '${conn.responseCode}' from the server.")
                     )
                 }
-
-                else -> throw ResourceNotFoundException(
-                    url.toString(),
-                    IOException("Received response code '${conn.responseCode}' from the server.")
-                )
             }
         } catch (t: Throwable) {
             // Its easiest for the user to follow it ths way.

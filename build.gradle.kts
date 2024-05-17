@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.durganmcbroom"
-version = "1.0-SNAPSHOT"
+version = "1.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -35,7 +35,9 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
-        val jvmMain by getting
+        val jvmMain by getting {
+            dependencies {}
+        }
         val jvmTest by getting {}
     }
 }
