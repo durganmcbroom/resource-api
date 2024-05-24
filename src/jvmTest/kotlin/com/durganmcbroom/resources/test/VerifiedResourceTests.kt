@@ -20,10 +20,4 @@ class VerifiedResourceTests {
 
         check(r.readAllBytes().size == 325259)
     }
-
-    @Test
-    fun `Test this one`() {
-        URL("https://repo.maven.apache.org/maven2/org/springframework/spring-expression/5.3.22/spring-expression-5.3.22.pom").toResource()
-
-    }
 }
