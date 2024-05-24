@@ -8,7 +8,8 @@ import java.net.URL
 public class RemoteResource internal constructor(
     private val url: URL,
 
-    private val allowedRedirects: Int
+    private val allowedRedirects: Int,
+    private val maxTimeout: Long
 ) : Resource {
     override val location: String = url.toString()
 
@@ -19,7 +20,7 @@ public class RemoteResource internal constructor(
         )
 
         return try {
-            stack.last().useConnection { conn ->
+            val closeableValue = stack.last().useConnection(maxTimeout) { conn ->
                 when (conn.responseCode) {
                     HttpURLConnection.HTTP_OK -> conn.inputStream
                     HttpURLConnection.HTTP_MOVED_TEMP,
@@ -34,6 +35,16 @@ public class RemoteResource internal constructor(
                     )
                 }
             }
+
+            object : InputStream() {
+                override fun read(): Int {
+                    return closeableValue.value.read()
+                }
+
+                override fun close() {
+                    closeableValue.close()
+                }
+            }
         } catch (t: Throwable) {
             throw ResourceOpenException(stack.first().toString(), t)
         }
@@ -46,6 +57,7 @@ public class RemoteResource internal constructor(
 
 public fun URL.toResource(
     allowedRedirects: Int = 10,
+    timeout: Long = 10000
 ): Resource {
     fun testConnection(stack: List<URL>) {
         val url = stack.last()
@@ -55,11 +67,9 @@ public fun URL.toResource(
         )
 
         return try {
-            url.useConnection { conn ->
+            url.useConnection(timeout) { conn ->
                 when (conn.responseCode) {
-                    HttpURLConnection.HTTP_OK -> { /* Everything is Ok */
-                    }
-
+                    HttpURLConnection.HTTP_OK -> { /* Everything is Ok */ }
                     HttpURLConnection.HTTP_MOVED_TEMP,
                     HttpURLConnection.HTTP_MOVED_PERM,
                     HttpURLConnection.HTTP_SEE_OTHER -> {
@@ -74,7 +84,7 @@ public fun URL.toResource(
                         IOException("Received response code '${conn.responseCode}' from the server.")
                     )
                 }
-            }
+            }.close()
         } catch (t: Throwable) {
             // Its easiest for the user to follow it ths way.
             throw ResourceOpenException(stack.first().toString(), t)
@@ -83,7 +93,7 @@ public fun URL.toResource(
 
     testConnection(listOf(this@toResource))
 
-    return RemoteResource(this@toResource, allowedRedirects)
+    return RemoteResource(this@toResource, allowedRedirects, timeout)
 }
 
 public class TooManyRedirectsException(

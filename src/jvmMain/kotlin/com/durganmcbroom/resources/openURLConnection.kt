@@ -1,16 +1,27 @@
 package com.durganmcbroom.resources
 
+import java.io.Closeable
 import java.net.HttpURLConnection
 import java.net.URL
 
-public inline fun <T> URL.useConnection(
-    timeout: Long = 10000,
-    crossinline block: (HttpURLConnection) -> T
-): T  {
-    return UseTimeout.orNull(timeout) {
-        block(openConnection() as HttpURLConnection)
-    } ?: throw ResourceTimedOutException(this@useConnection.toString(), timeout)
+public interface CloseableValue<T> : Closeable {
+    public val value: T
 }
+
+public fun <T> URL.useConnection(
+    timeout: Long = 10000,
+    block: (HttpURLConnection) -> T
+): CloseableValue<T> = UseTimeout.orNull(timeout) {
+    val httpURLConnection = openConnection() as HttpURLConnection
+
+    object : CloseableValue<T> {
+        override val value: T = block(httpURLConnection)
+
+        override fun close() {
+            httpURLConnection.disconnect()
+        }
+    }
+} ?: throw ResourceTimedOutException(this@useConnection.toString(), timeout)
 
 public class ResourceTimedOutException(
     resource: String,
