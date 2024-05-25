@@ -85,6 +85,8 @@ public fun URL.toResource(
                     )
                 }
             }.close()
+        } catch (e: ResourceNotFoundException) {
+            throw e
         } catch (t: Throwable) {
             // Its easiest for the user to follow it ths way.
             throw ResourceOpenException(stack.first().toString(), t)

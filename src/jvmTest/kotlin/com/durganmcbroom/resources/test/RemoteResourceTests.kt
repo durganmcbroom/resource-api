@@ -5,24 +5,25 @@ import com.durganmcbroom.resources.ResourceOpenException
 import com.durganmcbroom.resources.openStream
 import com.durganmcbroom.resources.toResource
 import java.net.URL
+import java.util.*
 import kotlin.test.Test
 
 class RemoteResourceTests {
     @Test
     fun `Test remote resource downloads correctly`() {
-        val resource = URL("https://google.com").toResource()
+        val resource = URL("http://maven.yakclient.net/snapshots/com/durganmcbroom/resource-api/1.0-SNAPSHOT/maven-metadata.xml.sha1").toResource()
         val ins = resource.openStream()
 
-        check(ins.available() > 100)
-        println(String(ins.readAllBytes()))
+        check(String(ins.readAllBytes()) == "265cf7d15a69add6d83998098818c9562ceabf33")
     }
 
     @Test
     fun `Test remote resource fails correctly`() {
         val a = runCatching {
-            val resource = URL("http://a.com").toResource()
+            val resource = URL("http://${UUID.randomUUID()}.com").toResource()
             resource.openStream()
         }
+        a.exceptionOrNull()?.printStackTrace()
         check(a.exceptionOrNull() is ResourceOpenException)
     }
 
@@ -33,6 +34,6 @@ class RemoteResourceTests {
             resource.openStream()
         }
         result.exceptionOrNull()?.printStackTrace()
-        check(result.exceptionOrNull() is ResourceOpenException && result.exceptionOrNull()!!.cause is ResourceNotFoundException)
+        check(result.exceptionOrNull() is ResourceNotFoundException)
     }
 }

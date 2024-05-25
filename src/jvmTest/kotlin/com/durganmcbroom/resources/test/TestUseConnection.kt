@@ -36,7 +36,6 @@ class TestUseConnection {
         URL("https://google.com").useConnection {
             val readAllBytes = it.inputStream.readAllBytes()
             check(readAllBytes.size > 1000)
-            println(String(readAllBytes))
         }
     }
 }

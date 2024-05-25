@@ -20,4 +20,22 @@ class VerifiedResourceTests {
 
         check(r.readAllBytes().size == 325259)
     }
+
+    @Test
+    fun `Invalid verification works correctly`() {
+        val remoteResource =
+            URL("https://repo1.maven.org/maven2/commons-io/commons-io/2.9.0/commons-io-2.9.0.jar").toResource()
+
+        val verifiedResource = VerifiedResource(
+            remoteResource,
+            ResourceAlgorithm.SHA1,
+            HexFormat.of().parseHex("")
+        )
+
+        val r = runCatching {
+            verifiedResource.openStream()
+        }
+        r.exceptionOrNull()?.printStackTrace()
+        check(r.exceptionOrNull() is ResourceVerificationException)
+    }
 }
