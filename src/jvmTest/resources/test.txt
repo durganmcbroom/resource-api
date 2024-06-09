@@ -1,0 +1,5 @@
+—— TEST ——
+
+Hello! You have found a file for internal Extension Framework testing. Thats it… Thanks!
+
+—— END ——

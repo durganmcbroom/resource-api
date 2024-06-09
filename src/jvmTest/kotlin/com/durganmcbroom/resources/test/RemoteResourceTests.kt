@@ -11,10 +11,10 @@ import kotlin.test.Test
 class RemoteResourceTests {
     @Test
     fun `Test remote resource downloads correctly`() {
-        val resource = URL("http://maven.yakclient.net/snapshots/com/durganmcbroom/resource-api/1.0-SNAPSHOT/maven-metadata.xml.sha1").toResource()
+        val resource = URL("http://maven.extframework.dev/public/test.txt").toResource()
         val ins = resource.openStream()
 
-        check(String(ins.readAllBytes()) == "265cf7d15a69add6d83998098818c9562ceabf33")
+        check(ins.readAllBytes().contentEquals(this::class.java.getResourceAsStream("/test.txt")!!.readAllBytes()))
     }
 
     @Test
