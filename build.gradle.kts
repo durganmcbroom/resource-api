@@ -65,8 +65,7 @@ allprojects {
         repositories {
             maven {
                 name = "extframework-repo"
-                url = uri("http://maven.extframework.dev/snapshots")
-                isAllowInsecureProtocol = true
+                url = uri("https://maven.extframework.dev/snapshots")
 
                 credentials {
                     val user = project.findProperty("maven.user") as String?
@@ -85,7 +84,6 @@ allprojects {
             }
         }
     }
-
 }
 
 publishing {
@@ -93,9 +91,7 @@ publishing {
         artifact(tasks["javadocJar"])
 
         pom {
-            name.set("Jobs")
-            description.set("A job scheduling, management, and execution framework.")
-            url.set("https://github.com/durganmcbroom/jobs")
+            name.set("resource-api")
 
             packaging = "jar"
 
@@ -114,9 +110,9 @@ publishing {
             }
 
             scm {
-                connection.set("scm:git:git://github.com/durganmcbroom/jobs")
-                developerConnection.set("scm:git:ssh://github.com:durganmcbroom/jobs")
-                url.set("https://github.com/durganmcbroom/jobs")
+                connection.set("scm:git:git://github.com/durganmcbroom/resource-api")
+                developerConnection.set("scm:git:ssh://github.com:durganmcbroom/resource-api")
+                url.set("https://github.com/durganmcbroom/resource-api")
             }
         }
     }
