@@ -1,10 +1,9 @@
 package com.durganmcbroom.resources
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
+import kotlin.math.min
 
 public actual class VerifiedResource actual constructor(
     public actual val unverifiedResource: Resource,
@@ -16,25 +15,26 @@ public actual class VerifiedResource actual constructor(
 ) : Resource {
     override val location: String by unverifiedResource::location
 
-    private inline fun <T> doUntil(attempts: Int, supplier: () -> T?): T? {
-        for (i in 0..<attempts) {
-            supplier()?.let {
-                return it
+    private fun InputStream.forceSkip(n: Long): Long {
+        var remaining: Long = n
+        var nr: Int
+
+        if (n <= 0) {
+            return 0
+        }
+
+        val size =
+            min(2048.0, remaining.toDouble()).toInt()
+        val skipBuffer = ByteArray(size)
+        while (remaining > 0) {
+            nr = read(skipBuffer, 0, min(size.toDouble(), remaining.toDouble()).toInt())
+            if (nr < 0) {
+                break
             }
-        }
-        return null
-    }
-
-    private fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().use { buffer ->
-        var nRead: Int
-        val data = ByteArray(4)
-
-        while (read(data, 0, data.size).also { nRead = it } != -1) {
-            buffer.write(data, 0, nRead)
+            remaining -= nr.toLong()
         }
 
-        buffer.flush()
-        buffer.toByteArray()
+        return n - remaining
     }
 
     override fun open(): ResourceStream {
@@ -45,19 +45,47 @@ public actual class VerifiedResource actual constructor(
             }
         )
 
-        val bytes = doUntil(retryAttempts) {
-            messageDigest.reset()
+        return object : InputStream() {
+            private var i = 0L
 
-            val b = DigestInputStream(
+            private var attempts = 0
+            private var delegate = DigestInputStream(
                 unverifiedResource.openStream(),
                 messageDigest
-            ).use { it.readInputStream() }
+            )
 
-            if (messageDigest.digest().contentEquals(digest)) b
-            else null
-        } ?: throw ResourceVerificationException(this@VerifiedResource)
+            private val buf = ArrayList<Int>()
 
-        return ByteArrayInputStream(bytes).asResourceStream()
+            override fun read(): Int {
+                var read = delegate.read()
+
+                if (read == -1 && !messageDigest.digest().contentEquals(digest)) {
+                    if (attempts >= retryAttempts) throw ResourceVerificationException(this@VerifiedResource)
+
+                    messageDigest.reset()
+                    delegate = DigestInputStream(
+                        unverifiedResource.openStream(),
+                        messageDigest
+                    )
+
+                    attempts++
+                    delegate.forceSkip(i)
+                    read = read()
+                }
+
+                i++
+                buf.add(read)
+                return read
+            }
+
+            override fun close() {
+                delegate.close()
+            }
+
+            override fun available(): Int {
+                return delegate.available()
+            }
+        }.asResourceStream()
     }
 }
 
