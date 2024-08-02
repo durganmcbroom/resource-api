@@ -54,8 +54,6 @@ public actual class VerifiedResource actual constructor(
                 messageDigest
             )
 
-            private val buf = ArrayList<Int>()
-
             override fun read(): Int {
                 var read = delegate.read()
 
@@ -74,7 +72,6 @@ public actual class VerifiedResource actual constructor(
                 }
 
                 i++
-                buf.add(read)
                 return read
             }
 
