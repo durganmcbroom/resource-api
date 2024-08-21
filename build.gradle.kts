@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.durganmcbroom"
-version = "1.1.4-SNAPSHOT"
+version = "1.1.5-SNAPSHOT"
 
 repositories {
     mavenCentral()

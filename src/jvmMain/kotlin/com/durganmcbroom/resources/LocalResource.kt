@@ -15,7 +15,7 @@ public class LocalResource internal constructor(
             throw ResourceNotFoundException(location, FileNotFoundException())
         }
 
-        return path.toFile().inputStream().asResourceStream()
+        return Files.newInputStream(path).asResourceStream()
     }
 }
 
