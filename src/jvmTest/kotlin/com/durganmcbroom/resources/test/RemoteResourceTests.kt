@@ -11,7 +11,7 @@ import kotlin.test.Test
 class RemoteResourceTests {
     @Test
     fun `Test remote resource downloads correctly`() {
-        val resource = URL("http://maven.extframework.dev/public/test.txt").toResource()
+        val resource = URL("https://static.extframework.dev/test.txt").toResource()
         val ins = resource.openStream()
 
         check(ins.readAllBytes().contentEquals(this::class.java.getResourceAsStream("/test.txt")!!.readAllBytes()))
@@ -20,7 +20,7 @@ class RemoteResourceTests {
     @Test
     fun `Test remote resource fails correctly`() {
         val a = runCatching {
-            val resource = URL("http://${UUID.randomUUID()}.com").toResource()
+            val resource = URL("https://${UUID.randomUUID()}.com").toResource()
             resource.openStream()
         }
         a.exceptionOrNull()?.printStackTrace()
@@ -30,7 +30,7 @@ class RemoteResourceTests {
     @Test
     fun `Test remote resource is not found`() {
         val result = runCatching {
-            val resource = URL("http://google.com/SomethingRandomThatWillResultInA404").toResource()
+            val resource = URL("https://google.com/SomethingRandomThatWillResultInA404").toResource()
             resource.openStream()
         }
         result.exceptionOrNull()?.printStackTrace()

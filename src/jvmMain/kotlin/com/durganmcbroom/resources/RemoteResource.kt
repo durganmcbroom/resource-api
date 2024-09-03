@@ -9,7 +9,6 @@ public class RemoteResource internal constructor(
     private val url: URL,
 
     private val allowedRedirects: Int,
-    private val maxTimeout: Long
 ) : Resource {
     override val location: String = url.toString()
 
@@ -20,7 +19,7 @@ public class RemoteResource internal constructor(
         )
 
         return try {
-            val closeableValue = stack.last().useConnection(maxTimeout) { conn ->
+            val closeableValue = stack.last().useConnection { conn ->
                 when (conn.responseCode) {
                     HttpURLConnection.HTTP_OK -> conn.inputStream
                     HttpURLConnection.HTTP_MOVED_TEMP,
@@ -57,7 +56,6 @@ public class RemoteResource internal constructor(
 
 public fun URL.toResource(
     allowedRedirects: Int = 10,
-    timeout: Long = 10000
 ): Resource {
     fun testConnection(stack: List<URL>) {
         val url = stack.last()
@@ -67,7 +65,7 @@ public fun URL.toResource(
         )
 
         return try {
-            url.useConnection(timeout) { conn ->
+            url.useConnection { conn ->
                 when (conn.responseCode) {
                     HttpURLConnection.HTTP_OK -> { /* Everything is Ok */ }
                     HttpURLConnection.HTTP_MOVED_TEMP,
@@ -95,7 +93,7 @@ public fun URL.toResource(
 
     testConnection(listOf(this@toResource))
 
-    return RemoteResource(this@toResource, allowedRedirects, timeout)
+    return RemoteResource(this@toResource, allowedRedirects)
 }
 
 public class TooManyRedirectsException(

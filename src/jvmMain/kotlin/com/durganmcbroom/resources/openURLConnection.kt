@@ -8,10 +8,11 @@ public interface CloseableValue<T> : Closeable {
     public val value: T
 }
 
+internal val maxConnectionTimeout = System.getProperty("resources.timeout")?.toLong() ?: 20000
+
 public fun <T> URL.useConnection(
-    timeout: Long = 10000,
     block: (HttpURLConnection) -> T
-): CloseableValue<T> = UseTimeout.orNull(timeout) {
+): CloseableValue<T> = UseTimeout.orNull(maxConnectionTimeout) {
     val httpURLConnection = openConnection() as HttpURLConnection
 
     object : CloseableValue<T> {
@@ -21,7 +22,7 @@ public fun <T> URL.useConnection(
             httpURLConnection.disconnect()
         }
     }
-} ?: throw ResourceTimedOutException(this@useConnection.toString(), timeout)
+} ?: throw ResourceTimedOutException(this@useConnection.toString(), maxConnectionTimeout)
 
 public class ResourceTimedOutException(
     resource: String,
