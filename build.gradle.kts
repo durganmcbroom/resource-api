@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.durganmcbroom"
-version = "1.1.6-SNAPSHOT"
+version = "1.1.7-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -15,7 +15,7 @@ kotlin {
     explicitApi()
 
     jvm {
-        jvmToolchain(17)
+        jvmToolchain(8)
         withJava()
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()

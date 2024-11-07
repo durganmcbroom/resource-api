@@ -4,12 +4,10 @@ import com.durganmcbroom.resources.*
 import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.net.URL
-import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 class VerifiedResourceTests {
     @Test
@@ -20,11 +18,11 @@ class VerifiedResourceTests {
         val verifiedResource = VerifiedResource(
             remoteResource,
             ResourceAlgorithm.SHA1,
-            HexFormat.of().parseHex("9cb4ce5672f6db9eb0ef6b44910e1ed96fc50e5e")
+            byteArrayOf(-100, -76, -50, 86, 114, -10, -37, -98, -80, -17, 107, 68, -111, 14, 30, -39, 111, -59, 14, 94),
         )
         val r = verifiedResource.openStream()
 
-        check(r.readAllBytes().size == 325259)
+        check(r.toBytes().size == 325259)
     }
 
     @Test
@@ -35,11 +33,11 @@ class VerifiedResourceTests {
         val verifiedResource = VerifiedResource(
             remoteResource,
             ResourceAlgorithm.SHA1,
-            HexFormat.of().parseHex("")
+            byteArrayOf()
         )
 
         val r = runCatching {
-            verifiedResource.openStream().readAllBytes()
+            verifiedResource.openStream().toBytes()
         }
         r.exceptionOrNull()?.printStackTrace()
         check(r.exceptionOrNull() is ResourceVerificationException)
@@ -51,11 +49,11 @@ class VerifiedResourceTests {
 
         val verifiedResource = VerifiedResource(
             rawResource, ResourceAlgorithm.SHA1,
-            MessageDigest.getInstance("SHA1").digest(rawResource.openStream().readAllBytes()),
+            MessageDigest.getInstance("SHA1").digest(rawResource.openStream().toBytes()),
             5
         )
 
-        assertEquals(String(verifiedResource.openStream().readAllBytes()), "This is local.")
+        assertEquals(String(verifiedResource.openStream().toBytes()), "This is local.")
     }
 
     @Test
@@ -69,7 +67,7 @@ class VerifiedResourceTests {
         )
 
         assertThrows<ResourceVerificationException> {
-            verifiedResource.openStream().readAllBytes()
+            verifiedResource.openStream().toBytes()
         }
     }
 
@@ -99,6 +97,6 @@ class VerifiedResourceTests {
             5
         )
 
-        assertEquals(String(verifiedResource.open().asInputStream().readAllBytes()), correct)
+        assertEquals(String(verifiedResource.open().asInputStream().toBytes()), correct)
     }
 }

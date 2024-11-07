@@ -14,7 +14,7 @@ class RemoteResourceTests {
         val resource = URL("https://static.extframework.dev/test.txt").toResource()
         val ins = resource.openStream()
 
-        check(ins.readAllBytes().contentEquals(this::class.java.getResourceAsStream("/test.txt")!!.readAllBytes()))
+        check(ins.toBytes().contentEquals(this::class.java.getResourceAsStream("/test.txt")!!.toBytes()))
     }
 
     @Test

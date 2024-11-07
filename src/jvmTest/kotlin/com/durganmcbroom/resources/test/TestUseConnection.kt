@@ -1,6 +1,5 @@
 package com.durganmcbroom.resources.test
 
-import com.durganmcbroom.resources.ResourceTimedOutException
 import com.durganmcbroom.resources.UseTimeout
 import com.durganmcbroom.resources.useConnection
 import java.net.URL
@@ -34,7 +33,7 @@ class TestUseConnection {
     @Test
     fun `Test use connection connects correctly`() {
         URL("https://google.com").useConnection {
-            val readAllBytes = it.inputStream.readAllBytes()
+            val readAllBytes = it.inputStream.toBytes()
             check(readAllBytes.size > 1000)
         }
     }

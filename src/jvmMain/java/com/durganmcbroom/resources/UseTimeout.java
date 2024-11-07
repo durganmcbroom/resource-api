@@ -12,7 +12,7 @@ public class UseTimeout {
             long timeout,
             Callable<T> block
     ) throws Throwable {
-        final var future = executor.submit(block);
+        final Future<T> future = executor.submit(block);
 
         try {
             return future.get(timeout, TimeUnit.MILLISECONDS);
