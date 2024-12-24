@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.durganmcbroom"
-version = "1.1.7-SNAPSHOT"
+version = "1.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -28,7 +28,11 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
-            dependencies {}
+            dependencies {
+                api("io.ktor:ktor-client-core:3.0.3")
+                implementation("io.ktor:ktor-client-cio:3.0.3")
+                implementation("io.ktor:ktor-client-apache:3.0.3")
+            }
         }
         val commonTest by getting {
             dependencies {

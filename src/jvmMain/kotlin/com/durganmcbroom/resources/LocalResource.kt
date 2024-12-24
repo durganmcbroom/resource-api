@@ -1,28 +1,33 @@
 package com.durganmcbroom.resources
 
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import java.io.File
 import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.Path
 
-public class LocalResource internal constructor(
-    public val path: Path
+public class LocalResource private constructor(
+    public val file: File
 ) : Resource {
-    override val location: String = path.toString()
+    override val location: String = file.toString()
 
-    override fun open(): ResourceStream {
+    public constructor(path: Path) : this(path.toFile()) {
+        if (!Files.exists(path)) throw ResourceNotFoundException(toString(), FileNotFoundException())
+    }
+
+    override suspend fun open(): ResourceStream = flow {
         // Check for this again just to make sure the file hasnt been deleted since this resource was created
-        if (!Files.exists(path)) {
+        if (!file.exists()) {
             throw ResourceNotFoundException(location, FileNotFoundException())
         }
 
-        return Files.newInputStream(path).asResourceStream()
+        emitAll(file.inputStream().asResourceStream())
     }
 }
 
 @Throws(ResourceException::class)
 public fun Path.toResource(): Resource {
-    if (!Files.exists(this)) throw ResourceNotFoundException(toString(), FileNotFoundException())
-
     return LocalResource(this)
 }
 

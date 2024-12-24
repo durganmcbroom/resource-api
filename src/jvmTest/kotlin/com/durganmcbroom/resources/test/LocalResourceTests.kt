@@ -1,9 +1,9 @@
 package com.durganmcbroom.resources.test
 
 import com.durganmcbroom.resources.ResourceNotFoundException
-import com.durganmcbroom.resources.openStream
+import com.durganmcbroom.resources.toByteArray
 import com.durganmcbroom.resources.toResource
-import java.nio.file.Path
+import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.toPath
@@ -14,7 +14,10 @@ class LocalResourceTests {
     fun `Test local resource produces correct output`() {
         val url = this::class.java.getResource("/test.txt")!!
         val resource = url.toURI().toPath().toResource()
-        check(String(resource.openStream().toBytes()).startsWith("—— TEST ——"))
+
+        runBlocking {
+            check(String(resource.open().toByteArray()).startsWith("—— TEST ——"))
+        }
     }
 
     @Test

@@ -1,5 +1,5 @@
 package com.durganmcbroom.resources
 
-public interface ResourceStream : Sequence<Byte> {
-    public fun close()
-}
+import kotlinx.coroutines.flow.Flow
+
+public typealias ResourceStream = Flow<ByteArray>

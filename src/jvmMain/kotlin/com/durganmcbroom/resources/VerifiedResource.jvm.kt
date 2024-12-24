@@ -1,5 +1,6 @@
 package com.durganmcbroom.resources
 
+import kotlinx.coroutines.flow.flow
 import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
@@ -37,52 +38,46 @@ public actual class VerifiedResource actual constructor(
         return n - remaining
     }
 
-    override fun open(): ResourceStream {
-        val messageDigest = MessageDigest.getInstance(
-            when (algorithm) {
-                ResourceAlgorithm.SHA1 -> "SHA1"
-                ResourceAlgorithm.MD5 -> "MD5"
-            }
-        )
+    override suspend fun open(): ResourceStream {
+        return flow {
+            var i = 0L
 
-        return object : InputStream() {
-            private var i = 0L
+            var attempts = 0
 
-            private var attempts = 0
-            private var delegate = DigestInputStream(
-                unverifiedResource.openStream(),
-                messageDigest
+            val messageDigest = MessageDigest.getInstance(
+                when (algorithm) {
+                    ResourceAlgorithm.SHA1 -> "SHA1"
+                    ResourceAlgorithm.MD5 -> "MD5"
+                }
             )
+            messageDigest.reset()
 
-            override fun read(): Int {
-                var read = delegate.read()
+            while (attempts < retryAttempts) {
+                val delegate = unverifiedResource.open()
 
-                if (read == -1 && !messageDigest.digest().contentEquals(digest)) {
-                    if (attempts >= retryAttempts) throw ResourceVerificationException(this@VerifiedResource)
+                var currentI = 0L
+                delegate.collect { read ->
+                    if (currentI == i) {
+                        i++
 
-                    messageDigest.reset()
-                    delegate = DigestInputStream(
-                        unverifiedResource.openStream(),
-                        messageDigest
-                    )
+                        emit(read)
+                    }
 
-                    attempts++
-                    delegate.forceSkip(i)
-                    read = read()
+                    messageDigest.update(read)
+                    currentI++
                 }
 
-                i++
-                return read
+                if (!messageDigest.digest().contentEquals(digest)) {
+                    messageDigest.reset()
+
+                    attempts++
+                } else {
+                    return@flow
+                }
             }
 
-            override fun close() {
-                delegate.close()
-            }
-
-            override fun available(): Int {
-                return delegate.available()
-            }
-        }.asResourceStream()
+            throw ResourceVerificationException(this@VerifiedResource)
+        }
     }
 }
 

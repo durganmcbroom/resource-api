@@ -1,99 +1,77 @@
 package com.durganmcbroom.resources
 
+import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.prepareGet
+import io.ktor.client.request.request
+import io.ktor.client.request.url
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.isSuccess
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.io.readByteArray
 import java.io.IOException
-import java.io.InputStream
-import java.net.HttpURLConnection
 import java.net.URL
 
-public class RemoteResource internal constructor(
-    private val url: URL,
-
-    private val allowedRedirects: Int,
+public class RemoteResource(
+    public val request: HttpRequestBuilder,
 ) : Resource {
-    override val location: String = url.toString()
+    override val location: String = request.url.toString()
 
-    private fun openResource(stack: List<URL>): InputStream {
-        if (stack.size > allowedRedirects) throw TooManyRedirectsException(
-            stack.map(URL::toString),
-            allowedRedirects
-        )
+    override suspend fun open(): ResourceStream = flow {
+        try {
+            KtorInstance.client.prepareGet(request).execute { httpResponse ->
+                if (httpResponse.status == HttpStatusCode.NotFound) {
+                    throw ResourceNotFoundException(location)
+                }
+                if (!httpResponse.status.isSuccess()) {
+                    throw ResourceOpenException(location, Exception("Status: '${httpResponse.status}' received."))
+                }
 
-        return try {
-            val closeableValue = stack.last().useConnection { conn ->
-                when (conn.responseCode) {
-                    HttpURLConnection.HTTP_OK -> conn.inputStream
-                    HttpURLConnection.HTTP_MOVED_TEMP,
-                    HttpURLConnection.HTTP_MOVED_PERM,
-                    HttpURLConnection.HTTP_SEE_OTHER -> openResource(
-                        stack + URL(conn.getHeaderField("Location"))
-                    )
-
-                    else -> throw ResourceNotFoundException(
-                        stack.last().toString(),
-                        IOException("Received response code '${conn.responseCode}' from the server.")
-                    )
+                val channel: ByteReadChannel = httpResponse.body()
+                while (!channel.isClosedForRead) {
+                    val packet = channel.readRemaining(DEFAULT_BUFFER_SIZE.toLong())
+                    while (!packet.exhausted()) {
+                        val bytes = packet.readByteArray()
+                        emit(bytes)
+                    }
                 }
             }
-
-            object : InputStream() {
-                override fun read(): Int {
-                    return closeableValue.value.read()
-                }
-
-                override fun close() {
-                    closeableValue.close()
-                }
+        } catch (ex: Exception) {
+            if (ex !is ResourceException) {
+                throw ResourceOpenException(location, ex)
             }
-        } catch (t: Throwable) {
-            throw ResourceOpenException(stack.first().toString(), t)
+            throw ex
         }
-    }
-
-    override fun open(): ResourceStream {
-        return openResource(listOf(url)).asResourceStream()
     }
 }
 
-public fun URL.toResource(
-    allowedRedirects: Int = 10,
-): Resource {
-    fun testConnection(stack: List<URL>) {
-        val url = stack.last()
-        if (stack.size > allowedRedirects) throw TooManyRedirectsException(
-            stack.map(URL::toString),
-            allowedRedirects
-        )
+public suspend fun HttpRequestBuilder.toResource(): Resource {
+    val client by KtorInstance::client
 
-        return try {
-            url.useConnection { conn ->
-                when (conn.responseCode) {
-                    HttpURLConnection.HTTP_OK -> { /* Everything is Ok */ }
-                    HttpURLConnection.HTTP_MOVED_TEMP,
-                    HttpURLConnection.HTTP_MOVED_PERM,
-                    HttpURLConnection.HTTP_SEE_OTHER -> {
-                        val headerField = conn.getHeaderField("Location")
-                        testConnection(
-                            stack + URL(headerField)
-                        )
-                    }
-
-                    else -> throw ResourceNotFoundException(
-                        url.toString(),
-                        IOException("Received response code '${conn.responseCode}' from the server.")
-                    )
-                }
-            }.close()
-        } catch (e: ResourceNotFoundException) {
-            throw e
-        } catch (t: Throwable) {
-            // Its easiest for the user to follow it ths way.
-            throw ResourceOpenException(stack.first().toString(), t)
-        }
+    val testConn = try {
+        client.request(this)
+    } catch (ex: Exception) {
+        throw ResourceOpenException(url.toString(), ex)
     }
 
-    testConnection(listOf(this@toResource))
+    if (testConn.status.value !in 200..299) throw ResourceNotFoundException(
+        url.toString(),
+        IOException("Received response code '${testConn.status}' from the server.")
+    )
 
-    return RemoteResource(this@toResource, allowedRedirects)
+    return RemoteResource(this)
+}
+
+public suspend fun URL.toResource(): Resource {
+    val builder = HttpRequestBuilder().apply {
+        url(this@toResource)
+    }
+
+    return builder.toResource()
 }
 
 public class TooManyRedirectsException(
