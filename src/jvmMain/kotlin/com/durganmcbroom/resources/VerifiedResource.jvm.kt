@@ -1,10 +1,8 @@
 package com.durganmcbroom.resources
 
+import com.sun.corba.se.impl.ior.ByteBuffer
 import kotlinx.coroutines.flow.flow
-import java.io.InputStream
-import java.security.DigestInputStream
 import java.security.MessageDigest
-import kotlin.math.min
 
 public actual class VerifiedResource actual constructor(
     public actual val unverifiedResource: Resource,
@@ -15,28 +13,6 @@ public actual class VerifiedResource actual constructor(
     private val retryAttempts: Int,
 ) : Resource {
     override val location: String by unverifiedResource::location
-
-    private fun InputStream.forceSkip(n: Long): Long {
-        var remaining: Long = n
-        var nr: Int
-
-        if (n <= 0) {
-            return 0
-        }
-
-        val size =
-            min(2048.0, remaining.toDouble()).toInt()
-        val skipBuffer = ByteArray(size)
-        while (remaining > 0) {
-            nr = read(skipBuffer, 0, min(size.toDouble(), remaining.toDouble()).toInt())
-            if (nr < 0) {
-                break
-            }
-            remaining -= nr.toLong()
-        }
-
-        return n - remaining
-    }
 
     override suspend fun open(): ResourceStream {
         return flow {
@@ -50,6 +26,7 @@ public actual class VerifiedResource actual constructor(
                     ResourceAlgorithm.MD5 -> "MD5"
                 }
             )
+
             messageDigest.reset()
 
             while (attempts < retryAttempts) {
@@ -57,14 +34,31 @@ public actual class VerifiedResource actual constructor(
 
                 var currentI = 0L
                 delegate.collect { read ->
+                    // Happy path everything is going well
                     if (currentI == i) {
-                        i++
+                        i += read.size
 
                         emit(read)
+                    } else if (currentI + read.size > i) { // Overtook where we are supposed to be upon reread
+                        // Int cast is safe, this case should never be more than a couple of thousand bytes (if more, your buffers are the wrong size!)
+                        val outputBuf = ByteArray((currentI + read.size - i).toInt())
+                        val startingIndex = (i - currentI).toInt()
+
+                        System.arraycopy(
+                            read,
+                            startingIndex,
+                            outputBuf,
+                            0,
+                            outputBuf.size
+                        )
+
+                        emit(outputBuf)
+
+                        i += currentI + read.size - i
                     }
 
                     messageDigest.update(read)
-                    currentI++
+                    currentI += read.size
                 }
 
                 if (!messageDigest.digest().contentEquals(digest)) {

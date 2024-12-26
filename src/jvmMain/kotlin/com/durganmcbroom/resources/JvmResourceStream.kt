@@ -1,23 +1,16 @@
 package com.durganmcbroom.resources
 
-import com.sun.org.apache.xerces.internal.xinclude.XIncludeHandler.BUFFER_SIZE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.flow.toList
-import sun.security.krb5.Confounder.bytes
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
-import java.io.Closeable
 import java.io.InputStream
-import java.nio.ByteBuffer
-import java.util.ArrayList
+import kotlin.math.max
+import kotlin.math.min
 
 public fun InputStream.asResourceStream(): ResourceStream = flow {
-    val buf = ByteArray(DEFAULT_BUFFER_SIZE)
-
     while (true) {
+        val buf = ByteArray(max(available(), 1))
+
         if (read(buf) == -1) break
         emit(buf)
     }
@@ -34,7 +27,7 @@ public suspend fun ResourceStream.toByteArray(): ByteArray {
         if (buffer.size >= size + i) {
             System.arraycopy(it, 0, buffer, i, size)
         } else {
-            val tempBuf = ByteArray(buffer.size + DEFAULT_BUFFER_SIZE * 3)
+            val tempBuf = ByteArray(buffer.size + max(DEFAULT_BUFFER_SIZE, size) * 3)
             System.arraycopy(buffer, 0, tempBuf, 0, buffer.size)
             System.arraycopy(it, 0, tempBuf, i, size)
             buffer = tempBuf
@@ -51,6 +44,8 @@ public suspend fun ResourceStream.toByteArray(): ByteArray {
 
     return retBuf
 }
+
+
 
 //
 //public class JvmResourceStream(

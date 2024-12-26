@@ -8,15 +8,16 @@ import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.toPath
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class LocalResourceTests {
     @Test
     fun `Test local resource produces correct output`() {
-        val url = this::class.java.getResource("/test.txt")!!
+        val url = this::class.java.getResource("/local-test.txt")!!
         val resource = url.toURI().toPath().toResource()
 
         runBlocking {
-            check(String(resource.open().toByteArray()).startsWith("—— TEST ——"))
+            assertEquals(String(resource.open().toByteArray()), "This is local.")
         }
     }
 
