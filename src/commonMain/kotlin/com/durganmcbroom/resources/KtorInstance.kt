@@ -8,6 +8,8 @@ public object KtorInstance {
     public val client: HttpClient = HttpClient(Apache) {
         install(HttpTimeout) {
             requestTimeoutMillis = 20000
+            socketTimeoutMillis = 20000
+            connectTimeoutMillis = 20000
         }
         engine {
             pipelining = true
