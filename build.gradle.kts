@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.durganmcbroom"
-version = "1.2-SNAPSHOT"
+version = "1.2.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -31,7 +31,8 @@ kotlin {
             dependencies {
                 api("io.ktor:ktor-client-core:3.0.3")
                 implementation("io.ktor:ktor-client-cio:3.0.3")
-                implementation("io.ktor:ktor-client-apache:3.0.3")
+//                implementation("io.ktor:ktor-client-apache:3.0.3")
+                implementation("io.ktor:ktor-client-logging:3.0.3")
             }
         }
         val commonTest by getting {
