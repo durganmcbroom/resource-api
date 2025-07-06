@@ -69,8 +69,7 @@ allprojects {
     publishing {
         repositories {
             maven {
-                name = "extframework-repo"
-                url = uri("https://maven.extframework.dev/snapshots")
+                url = uri("https://maven.durganmcbroom.com/snapshots")
 
                 credentials {
                     val user = project.findProperty("maven.user") as String?
