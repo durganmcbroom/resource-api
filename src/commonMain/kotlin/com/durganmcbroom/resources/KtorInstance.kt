@@ -9,7 +9,6 @@ public object KtorInstance {
         // Enable automatic following of redirects.
         followRedirects = true
 
-        println("NEWEST")
         engine {
             requestTimeout = 0
         }
