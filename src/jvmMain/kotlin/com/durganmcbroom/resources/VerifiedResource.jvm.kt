@@ -65,6 +65,8 @@ public actual class VerifiedResource actual constructor(
                     messageDigest.reset()
 
                     attempts++
+
+                    System.err.println("Error verifying resource: '$location'. Attempt #$attempts.")
                 } else {
                     return@flow
                 }
